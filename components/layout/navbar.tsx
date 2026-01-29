@@ -1,0 +1,157 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, User, LogOut, Film } from "lucide-react";
+import { logout } from "@/app/actions/auth";
+
+interface NavbarUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const navLinks = [
+  { href: "/about", label: "About" },
+  { href: "/movies", label: "Movies" },
+];
+
+export function Navbar({ user }: { user: NavbarUser | null }) {
+  const pathname = usePathname();
+
+  const initials = user
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "";
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
+      <nav className="container flex h-16 items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-white">
+          <Film className="h-6 w-6 text-violet-400" />
+          <span>MovieRec</span>
+        </Link>
+
+        <div className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-white",
+                pathname === link.href ? "text-white" : "text-zinc-400"
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar>
+                    <AvatarFallback className="bg-violet-600 text-white">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-zinc-800">
+                <div className="flex items-center gap-2 p-2">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium text-white">{user.name}</p>
+                    <p className="text-xs text-zinc-400">{user.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="cursor-pointer text-zinc-300 focus:text-white focus:bg-zinc-800">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem
+                  onClick={() => logout()}
+                  className="cursor-pointer text-zinc-300 focus:text-white focus:bg-zinc-800"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden md:flex items-center gap-3">
+              <Button variant="ghost" className="text-zinc-300 hover:text-white hover:bg-white/10" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button className="bg-violet-600 hover:bg-violet-500 text-white" asChild>
+                <Link href="/register">Sign up</Link>
+              </Button>
+            </div>
+          )}
+
+          <Sheet>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="bg-zinc-900 border-zinc-800">
+              <nav className="flex flex-col gap-4 mt-8">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "text-lg font-medium",
+                      pathname === link.href ? "text-white" : "text-zinc-400"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+                {!user && (
+                  <>
+                    <Link href="/login" className="text-lg font-medium text-zinc-400">
+                      Sign in
+                    </Link>
+                    <Link href="/register" className="text-lg font-medium text-violet-400">
+                      Sign up
+                    </Link>
+                  </>
+                )}
+                {user && (
+                  <button
+                    onClick={() => logout()}
+                    className="text-lg font-medium text-zinc-400 text-left"
+                  >
+                    Sign out
+                  </button>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </nav>
+    </header>
+  );
+}
