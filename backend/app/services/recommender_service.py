@@ -3,30 +3,30 @@ A cosine similarity recommender system based on movies rating, genre, votes
 '''
 
 
-def load_data(filename): 
+def load_data(omdb_movies):
     '''
-    load movies csv information
-    
-    :param filename: csv file name
-    '''
-    import csv
-    
-    movies = []
-    with open(filename, "r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            # skip if missing, reason why i got ValueError
-            if not row['rating'] or not row['votes'] or not row['genre']:
-                continue
+    load movies from OMDb API response data
 
-            genre_list = row['genre'].split('|')
-            movies.append({
-                'title': row['movie_name'],
-                'genre': genre_list,
-                'rating': float(row['rating']),
-                'votes': float(row['votes'])
-            })
-        return movies
+    :param omdb_movies: list of OMDb movie detail dicts
+    '''
+    movies = []
+    for row in omdb_movies:
+        # skip if missing, reason why i got ValueError
+        if not row.get('imdbRating') or not row.get('imdbVotes') or not row.get('Genre'):
+            continue
+        if row['imdbRating'] == 'N/A' or row['imdbVotes'] == 'N/A' or row['Genre'] == 'N/A':
+            continue
+
+        genre_list = [g.strip() for g in row['Genre'].split(',')]
+        movies.append({
+            'title': row['Title'],
+            'genre': genre_list,
+            'rating': float(row['imdbRating']),
+            'votes': float(row['imdbVotes'].replace(',', '')),
+            'imdbID': row.get('imdbID', ''),
+            'poster': row.get('Poster', 'N/A'),
+        })
+    return movies
     
     
 def create_feature_vector(movies):
@@ -39,7 +39,7 @@ def create_feature_vector(movies):
     
     Votes: Log-transformed to reduce skew 
     
-    :param movies: the movie csv file
+    :param movies: movie
     '''
     
     import math
@@ -76,7 +76,7 @@ def recommend_movies(movies:str, feature_vectors:list ,target_title:str, num_rec
     '''
     For a given movie, compute similarity with all others and return top N
     
-    :param movies: movies csv filename
+    :param movies: movies 
     :type movies: str
     :param feature_vectors: the numerical vectors
     :type feature_vectors: list
@@ -98,7 +98,7 @@ def recommend_movies(movies:str, feature_vectors:list ,target_title:str, num_rec
         if i == target_idx:
             continue
         sim = cosine_similarity(feature_vectors[target_idx], vec)
-        similarities.append((movies[i]['title'], sim))
+        similarities.append((movies[i], sim))
 
     similarities.sort(key=lambda x: x[1], reverse=True)
     return similarities[:num_recommendations]
@@ -125,24 +125,3 @@ def cosine_similarity(a, b) -> float:
         return 0.0
     
     return dot_product / (magnitude_a * magnitude_b)
-    
-
-
-movies = load_data("archive/sports.csv")
-
-feature_vectors, genre_list = create_feature_vector(movies)
-
-
-print(f"Loaded {len(movies)} movies from dataset")
-print("\nFirst 10 movies:")
-for i, movie in enumerate(movies[:10]):
-    print(f"{i+1}. {movie['title']}")
-
-
-if len(movies) > 0:
-    test_movie = movies[0]['title']
-    recommendations = recommend_movies(movies, feature_vectors, "Cars", num_recommendations=20)
-
-    print(f"\nTop 5 recommendations for '{test_movie}':")
-    for title, score in recommendations:
-        print(f"- {title} (similarity: {score:.3f})")   
